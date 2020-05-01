@@ -13,14 +13,13 @@ class QLearningAgent:
         self.gamma = 0.9
         self.batch_size = 20
         self.experience_replay = deque(maxlen=2000)
-        self.possible_actions = np.eye(num_actions)
 
     def act(self, observation, epsilon=0.0):
         if np.random.random() < epsilon:
-            return self.possible_actions[np.random.choice(self.num_actions)]
+            return np.random.choice(self.num_actions)
         reshaped_observation = np.expand_dims(observation, axis=0)
         results = self.network.predict(reshaped_observation)
-        return self.possible_actions[np.argmax(results)]
+        return np.argmax(results)
 
     def add_experience(self, state, action, reward, next_state, terminal):
         self.experience_replay.append((state, action, reward, next_state, terminal))

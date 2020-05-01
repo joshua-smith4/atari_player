@@ -3,6 +3,7 @@ import gym
 
 import os,sys
 import argparse
+import copy
 
 import numpy as np
 import tensorflow as tf
@@ -20,26 +21,21 @@ if __name__ == '__main__':
     if args.keep_training == 1:
         print('loading network from previous training')
         qagent.network = tf.keras.models.load_model(path_to_saved_model)
-    nop = np.array([1,0,0,0,0])
     for i in range(args.epochs):
-        obs_n = env.reset()
-        done_master = [False for i in range(len(obs_n))]
         print('Epoch {}'.format(i))
-        count = 0
-        while not all(done_master) and count < args.max_frames:
-            count += 1
-            act_n = []
-            for k in range(len(obs_n)):
-                if done_master[k]:
-                    act_n.append(nop)
-                    continue
-                act_n.append(qagent.act(obs_n[k], qagent.epsilon)) 
-            obs_next, reward_n, done_n, _ = env.step(act_n)
-            for k in range(len(obs_n)):
-                if done_master[k]: continue
-                if done_n[k]: done_master[k] = True
-                qagent.q_learning_step(obs_n[k], act_n[k], reward_n[k], obs_next[k], done_n[k], qagent.batch_size)
-        if all(done_master):
-            print('all the goals were reached')
+        obs = env.reset()
+        obs = obs / 255.0
+        done = False
+        max_reward = 0;
+        while not done:
+            act = qagent.act(obs, epsilon=qagent.epsilon)
+            obs_next, reward, done, _ = env.step(act)
+            obs_next = obs_next / 255.0
+            if reward > max_reward: max_reward = reward
+            act = tf.keras.utils.to_categorical(act, env.action_space.n)
+            qagent.q_learning_step(
+                    obs, act, reward, obs_next, done, qagent.batch_size)
+            obs = obs_next
+        print('max_reward: {}'.format(max_reward))
         qagent.network.save('saved_model/latest')
 
